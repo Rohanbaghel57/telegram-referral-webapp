@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device Verification</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #111111);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center;
+  }
+  .spinner {
+    width: 40px; height: 40px; border: 4px solid #ccc; border-top-color: #3390ec;
+    border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  button {
+    background: var(--tg-theme-button-color, #3390ec);
+    color: var(--tg-theme-button-text-color, #fff);
+    border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+  <div id="status">
+    <div class="spinner"></div>
+    <p>Verifying your device…</p>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // --- Simple fingerprinting: canvas + WebGL + navigator properties -----
+    // This is intentionally lightweight (no external libs) so it works
+    // offline inside the Telegram WebApp sandbox. For stronger fraud
+    // resistance in production, consider swapping in FingerprintJS.
+    function canvasFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = "14px 'Arial'";
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('device-fp-🔒', 2, 15);
+        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+        ctx.fillText('device-fp-🔒', 4, 17);
+        return canvas.toDataURL();
+      } catch (e) { return 'canvas-unavailable'; }
+    }
+
+    function webglFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'no-webgl';
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        const vendor = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+        const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+        return `${vendor}~${renderer}`;
+      } catch (e) { return 'webgl-error'; }
+    }
+
+    async function sha256(text) {
+      const enc = new TextEncoder().encode(text);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function collectAndSend() {
+      const data = {
+        browser: navigator.userAgent,
+        os: navigator.platform,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        user_agent: navigator.userAgent,
+        canvas_fp: canvasFingerprint(),
+        webgl_fp: webglFingerprint(),
+        telegram_init_data: tg.initData,
+        telegram_user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null,
+      };
+
+      const rawKey = [
+        data.browser, data.os, data.screen_resolution, data.language,
+        data.timezone, data.canvas_fp, data.webgl_fp,
+      ].join('|');
+
+      data.fingerprint_hash = await sha256(rawKey);
+      data.device_id = data.fingerprint_hash.slice(0, 32);
+
+      tg.sendData(JSON.stringify(data));
+      document.getElementById('status').innerHTML =
+        '<p>✅ Verification data sent. You can close this window.</p>';
+      setTimeout(() => tg.close(), 800);
+    }
+
+    collectAndSend().catch(err => {
+      document.getElementById('status').innerHTML =
+        `<p>⚠️ Verification failed: ${err}</p><button onclick="collectAndSend()">Retry</button>`;
+    });
+  </script>
+</body>
+</html>
