@@ -634,6 +634,15 @@
     return !!(tg.initData && tg.initData.length > 0);
   }
 
+  function haptic(kind){
+    try{
+      if (!tg || !tg.HapticFeedback) return;
+      if (kind === "success") tg.HapticFeedback.notificationOccurred("success");
+      else if (kind === "error") tg.HapticFeedback.notificationOccurred("error");
+      else if (kind === "tap") tg.HapticFeedback.impactOccurred("light");
+    }catch(e){}
+  }
+
   function initTelegram(){
     if (!tg) return false;
     try{
@@ -753,6 +762,47 @@
     return Math.abs(hash).toString(16);
   }
 
+  /* ================= UA PARSING HELPERS ================= */
+  function detectBrowser(ua){
+    ua = ua || "";
+    if (/Edg\//.test(ua)) return "Edge";
+    if (/OPR\//.test(ua) || /Opera/.test(ua)) return "Opera";
+    if (/Chrome\//.test(ua) && !/Chromium/.test(ua)) return "Chrome";
+    if (/CriOS\//.test(ua)) return "Chrome iOS";
+    if (/FxiOS\//.test(ua)) return "Firefox iOS";
+    if (/Firefox\//.test(ua)) return "Firefox";
+    if (/Safari\//.test(ua) && /Version\//.test(ua)) return "Safari";
+    if (/Telegram/i.test(ua)) return "Telegram In-App";
+    return "Unknown";
+  }
+
+  function detectOS(ua, platform){
+    ua = ua || "";
+    platform = platform || "";
+    if (/Android/.test(ua)) return "Android";
+    if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
+    if (/Windows NT/.test(ua)) return "Windows";
+    if (/Mac OS X/.test(ua) && !/iPhone|iPad|iPod/.test(ua)) return "macOS";
+    if (/Linux/.test(platform) && !/Android/.test(ua)) return "Linux";
+    return "Unknown";
+  }
+
+  /* ================= STABLE DEVICE ID ================= */
+  function buildStableDeviceSeed(deviceInfo){
+    // Uses only slow-changing hardware/OS traits so the id stays stable across sessions,
+    // independent of the full fingerprint hash (which also includes canvas/webgl noise).
+    return [
+      deviceInfo.platform,
+      deviceInfo.hardwareConcurrency,
+      deviceInfo.deviceMemory,
+      deviceInfo.screenResolution,
+      deviceInfo.colorDepth,
+      deviceInfo.pixelRatio,
+      deviceInfo.timezone,
+      deviceInfo.language
+    ].join("|");
+  }
+
   /* ================= PROGRESS UI ================= */
   function runProgressSequence(){
     return new Promise(function(resolve){
@@ -791,6 +841,7 @@
 
   function handleError(message){
     els.errorMessage.textContent = message || "Something went wrong while verifying your device. Please try again.";
+    haptic("error");
     showState("error");
   }
 
@@ -807,40 +858,44 @@
     .then(function(){
       var deviceInfo = collectDeviceInfo();
       var fingerprintSource = JSON.stringify(deviceInfo);
-      return sha256Hex(fingerprintSource).then(function(fingerprintHash){
-        return { deviceInfo: deviceInfo, fingerprintHash: fingerprintHash };
+      var deviceIdSource = buildStableDeviceSeed(deviceInfo);
+
+      return Promise.all([
+        sha256Hex(fingerprintSource),
+        sha256Hex(deviceIdSource)
+      ]).then(function(hashes){
+        return { deviceInfo: deviceInfo, fingerprintHash: hashes[0], deviceId: hashes[1] };
       });
     })
     .then(function(result){
       var initDataUnsafe = (tg && tg.initDataUnsafe) ? tg.initDataUnsafe : {};
       var user = initDataUnsafe.user || {};
-
-      var payload = {
-        type: "device_verification",
-        brand: CONFIG.brand,
-        fingerprint: result.fingerprintHash,
-        device: result.deviceInfo,
-        user: {
-          id: user.id || null,
-          username: user.username || null,
-          firstName: user.first_name || null,
-          lastName: user.last_name || null,
-          languageCode: user.language_code || null,
-          isPremium: !!user.is_premium
-        },
-        startParam: initDataUnsafe.start_param || null,
-        timestamp: new Date().toISOString()
-      };
+      var deviceInfo = result.deviceInfo;
 
       if (!tg || typeof tg.sendData !== "function"){
         throw new Error("Telegram WebApp is unavailable on this client.");
       }
 
-      // initData itself is never logged or stored — only structured, sanitized fields are sent.
+      var payload = {
+        fingerprint_hash: result.fingerprintHash,
+        device_id: result.deviceId,
+        telegram_init_data: tg.initData || "",
+        telegram_user_id: user.id || null,
+        browser: detectBrowser(deviceInfo.userAgent),
+        os: detectOS(deviceInfo.userAgent, deviceInfo.platform),
+        language: deviceInfo.language,
+        screen_resolution: deviceInfo.screenResolution,
+        timezone: deviceInfo.timezone,
+        user_agent: deviceInfo.userAgent,
+        canvas_fp: deviceInfo.canvasFingerprint,
+        webgl_fp: deviceInfo.webglFingerprint
+      };
+
       tg.sendData(JSON.stringify(payload));
 
-      var shortId = result.fingerprintHash.slice(0, 12).toUpperCase();
+      var shortId = result.deviceId.slice(0, 12).toUpperCase();
       els.idChipText.textContent = "ID " + shortId;
+      haptic("success");
       showState("success");
 
       setTimeout(function(){
@@ -861,6 +916,7 @@
 
   els.verifyBtn.addEventListener("click", function(){
     if (els.verifyBtn.disabled) return;
+    haptic("tap");
     beginVerification();
   });
 
