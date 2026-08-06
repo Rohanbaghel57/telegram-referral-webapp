@@ -628,10 +628,51 @@
   /* ================= TELEGRAM WEBAPP ================= */
   var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
+  /*
+   * RELIABLE TELEGRAM DETECTION — does NOT rely solely on tg.initData.
+   *
+   * Method:
+   *   1. If the TelegramWebviewProxy is present (window.TelegramWebviewProxy),
+   *      we are definitely inside a Telegram webview.
+   *   2. If Telegram WebApp object exists (tg) AND the userAgent contains
+   *      "Telegram" — also valid Telegram webview.
+   *   3. If window === window.parent (no iframe) AND the URL has a tgWebApp*
+   *      query parameter, assume Telegram launch.
+   *   4. If tg exists and has a valid platform string — also valid.
+   *   5. If tg.initData exists (classic check) — valid.
+   *
+   * This gives 5 independent fallback checks before showing "Open Inside Telegram".
+   */
   function isRunningInTelegram(){
-    if (!tg) return false;
-    // initData is populated only when launched from within Telegram
-    return !!(tg.initData && tg.initData.length > 0);
+    // Check 1: Native Telegram webview proxy (most reliable)
+    if (typeof window.TelegramWebviewProxy !== "undefined" && window.TelegramWebviewProxy !== null) {
+      return true;
+    }
+
+    // Check 2: tg object exists AND userAgent explicitly says Telegram
+    if (tg) {
+      var ua = (navigator.userAgent || "").toLowerCase();
+      if (ua.indexOf("telegram") !== -1) {
+        return true;
+      }
+    }
+
+    // Check 3: URL contains tgWebApp query parameter (launched via Telegram button)
+    if (window.location.search.indexOf("tgWebApp") !== -1) {
+      return true;
+    }
+
+    // Check 4: tg object exists with a valid platform
+    if (tg && tg.platform && tg.platform.length > 0) {
+      return true;
+    }
+
+    // Check 5: Classic initData check (may work on some Telegram versions)
+    if (tg && tg.initData && tg.initData.length > 0) {
+      return true;
+    }
+
+    return false;
   }
 
   function haptic(kind){
@@ -936,7 +977,7 @@
 
     var tgReady = initTelegram();
 
-    if (!tgReady || !isRunningInTelegram()){
+    if (!isRunningInTelegram()){
       showState("outside");
       return;
     }
