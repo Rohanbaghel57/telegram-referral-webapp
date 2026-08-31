@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Roo Drop · Security Check</title>
+<meta name="theme-color" content="#0F0825">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg-1:#0F0825;
+    --bg-2:#20104A;
+    --bg-3:#32145F;
+    --primary:#8B5CF6;
+    --accent:#A855F7;
+    --success:#22C55E;
+    --error:#EF4444;
+    --glass-border: rgba(255,255,255,0.08);
+    --text-primary:#F5F3FF;
+    --text-secondary: rgba(229,224,255,0.62);
+    --text-tertiary: rgba(229,224,255,0.4);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+  html,body{
+    height:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(168,85,247,0.20), transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(139,92,246,0.22), transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(50,20,95,0.55), transparent 60%),
+      linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+    color:var(--text-primary);
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    position:relative;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ---------- floating particles ---------- */
+  #particles{
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    pointer-events:none;
+    z-index:0;
+  }
+  .particle{
+    position:absolute;
+    bottom:-10%;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(168,85,247,0.55), rgba(168,85,247,0) 70%);
+    filter:blur(0.5px);
+    animation:floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0) translateX(0); opacity:0; }
+    10%{ opacity:0.8; }
+    90%{ opacity:0.4; }
+    100%{ transform:translateY(-115vh) translateX(var(--drift,20px)); opacity:0; }
+  }
+
+  /* ---------- card ---------- */
+  .card-wrap{
+    position:relative;
+    z-index:2;
+    width:100%;
+    max-width:420px;
+  }
+
+  .card{
+    position:relative;
+    background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    backdrop-filter:blur(28px) saturate(160%);
+    -webkit-backdrop-filter:blur(28px) saturate(160%);
+    border-radius:30px;
+    border:1px solid var(--glass-border);
+    box-shadow:
+      0 30px 80px -20px rgba(15,8,37,0.75),
+      0 10px 30px -10px rgba(139,92,246,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    padding:44px 32px 36px;
+    text-align:center;
+    overflow:hidden;
+    animation:cardIn 0.7s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    top:-60%;
+    left:-20%;
+    width:140%;
+    height:140%;
+    background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.10), transparent 55%);
+    pointer-events:none;
+  }
+
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(28px) scale(0.97); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:28px;
+    opacity:0.85;
+  }
+  .brand-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:linear-gradient(135deg, var(--primary), var(--accent));
+    box-shadow:0 0 12px rgba(168,85,247,0.8);
+  }
+  .brand-name{
+    font-size:13px;
+    letter-spacing:3px;
+    font-weight:600;
+    text-transform:uppercase;
+    color:var(--text-secondary);
+  }
+
+  /* ---------- icon stage ---------- */
+  .icon-stage{
+    position:relative;
+    width:120px;
+    height:120px;
+    margin:0 auto 30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .icon-glow{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(139,92,246,0.55), rgba(139,92,246,0) 70%);
+    filter:blur(6px);
+    animation:breathe 3.2s ease-in-out infinite;
+  }
+
+  @keyframes breathe{
+    0%,100%{ transform:scale(0.88); opacity:0.65; }
+    50%{ transform:scale(1.12); opacity:1; }
+  }
+
+  .icon-ring{
+    position:absolute;
+    inset:6px;
+    border-radius:50%;
+    border:1px solid rgba(168,85,247,0.35);
+    animation:ringPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes ringPulse{
+    0%,100%{ transform:scale(1); opacity:0.5; }
+    50%{ transform:scale(1.08); opacity:0.9; }
+  }
+
+  .icon-core{
+    position:relative;
+    width:78px;
+    height:78px;
+    border-radius:50%;
+    background:linear-gradient(160deg, var(--primary), var(--accent));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.12) inset,
+      0 12px 30px -6px rgba(139,92,246,0.65);
+    animation:breathe 3.2s ease-in-out infinite;
+    transition:all 0.4s ease;
+  }
+
+  .icon-core svg{
+    width:34px;
+    height:34px;
+    stroke:#fff;
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  }
+
+  /* success state icon override */
+  .icon-core.success{
+    background:linear-gradient(160deg, #34D77B, var(--success));
+    box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset, 0 12px 30px -6px rgba(34,197,94,0.65);
+    animation:none;
+  }
+  .icon-core.error{
+    background:linear-gradient(160deg, #F87171, var(--error));
+    box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset, 0 12px 30px -6px rgba(239,68,68,0.55);
+    animation:none;
+  }
+
+  /* checkmark draw */
+  .check-path{
+    stroke-dasharray:40;
+    stroke-dashoffset:40;
+    animation:drawCheck 0.55s 0.15s cubic-bezier(0.65,0,0.35,1) forwards;
+  }
+  @keyframes drawCheck{
+    to{ stroke-dashoffset:0; }
+  }
+
+  /* loader spinner ring around icon */
+  .spinner-ring{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border:3px solid rgba(139,92,246,0.15);
+    border-top-color:var(--accent);
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- text ---------- */
+  .title{
+    font-size:23px;
+    font-weight:700;
+    letter-spacing:-0.3px;
+    margin-bottom:10px;
+    background:linear-gradient(180deg, #FFFFFF, #D9CEFF);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation:fadeSlide 0.5s ease both;
+  }
+
+  .subtitle{
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--text-secondary);
+    max-width:300px;
+    margin:0 auto 30px;
+    animation:fadeSlide 0.5s 0.05s ease both;
+  }
+
+  @keyframes fadeSlide{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ---------- progress text ---------- */
+  .progress-text{
+    font-size:13px;
+    color:var(--text-tertiary);
+    margin-bottom:26px;
+    min-height:18px;
+    letter-spacing:0.2px;
+    transition:opacity 0.25s ease;
+  }
+
+  .progress-track{
+    width:100%;
+    height:4px;
+    border-radius:4px;
+    background:rgba(255,255,255,0.07);
+    overflow:hidden;
+    margin-bottom:30px;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    border-radius:4px;
+    background:linear-gradient(90deg, var(--primary), var(--accent));
+    box-shadow:0 0 12px rgba(168,85,247,0.6);
+    transition:width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ---------- button ---------- */
+  .verify-btn{
+    position:relative;
+    width:100%;
+    padding:17px 24px;
+    border:none;
+    border-radius:18px;
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    color:#fff;
+    cursor:pointer;
+    background:linear-gradient(135deg, var(--primary), var(--accent));
+    box-shadow:
+      0 10px 30px -8px rgba(139,92,246,0.65),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+    overflow:hidden;
+    transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, opacity 0.25s ease;
+    -webkit-appearance:none;
+  }
+  .verify-btn:active{ transform:scale(0.97); }
+  @media (hover:hover){
+    .verify-btn:hover:not(:disabled){
+      transform:translateY(-2px) scale(1.015);
+      box-shadow:0 14px 38px -8px rgba(168,85,247,0.8), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+  }
+  .verify-btn:disabled{
+    cursor:default;
+    opacity:0.75;
+    transform:none;
+  }
+
+  .btn-label{
+    position:relative;
+    z-index:2;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+
+  .btn-spinner{
+    width:16px;height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:#fff;
+    animation:spin 0.7s linear infinite;
+    display:none;
+  }
+  .verify-btn.loading .btn-spinner{ display:inline-block; }
+  .verify-btn.loading .btn-text-idle{ display:none; }
+
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255,255,255,0.45);
+    transform:scale(0);
+    animation:rippleAnim 0.6s ease-out;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{
+    to{ transform:scale(3.2); opacity:0; }
+  }
+
+  /* ---------- footer ---------- */
+  .footer-note{
+    margin-top:26px;
+    font-size:11.5px;
+    color:var(--text-tertiary);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    letter-spacing:0.2px;
+  }
+  .footer-note svg{
+    width:12px;height:12px;
+    stroke:var(--text-tertiary);
+    fill:none;
+    stroke-width:2;
+  }
+
+  /* ---------- states visibility ---------- */
+  .state{ display:none; }
+  .state.active{ display:block; animation:fadeSlide 0.45s ease both; }
+
+  /* open-in-telegram card */
+  .tg-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    padding:16px 22px;
+    margin-top:6px;
+    border:none;
+    border-radius:18px;
+    font-size:15px;
+    font-weight:600;
+    color:#fff;
+    background:linear-gradient(135deg,#2AABEE,#229ED9);
+    box-shadow:0 10px 26px -8px rgba(42,171,238,0.55);
+    cursor:pointer;
+    text-decoration:none;
+    transition:transform 0.25s ease;
+  }
+  .tg-btn:active{ transform:scale(0.97); }
+  .tg-btn svg{ width:18px;height:18px; fill:#fff; }
+
+  /* ---------- VERIFICATION STATUS PANEL (Telegram WebApp live checks) ---------- */
+  .diag-panel{
+    margin-top:22px;
+    text-align:left;
+    background:rgba(0,0,0,0.28);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:14px;
+    padding:14px 16px;
+    font-family:"SF Mono","Roboto Mono",monospace;
+    font-size:11.5px;
+    line-height:1.7;
+    max-height:260px;
+    overflow-y:auto;
+  }
+  .diag-panel-title{
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-tertiary);
+    margin-bottom:8px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .diag-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:3px 0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .diag-row:last-child{ border-bottom:none; }
+  .diag-key{
+    color:var(--text-secondary);
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .diag-icon{ display:inline-block; width:14px; text-align:center; }
+  .diag-val{ color:#C4B5FD; word-break:break-all; text-align:right; }
+  .diag-val.diag-true{ color:#86EFAC; }
+  .diag-val.diag-false{ color:#FCA5A5; }
+  .diag-val.diag-pending{ color:var(--text-tertiary); }
+
+  /* device id chip (success state) */
+  .id-chip{
+    margin-top:22px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 16px;
+    border-radius:100px;
+    background:rgba(34,197,94,0.10);
+    border:1px solid rgba(34,197,94,0.25);
+    font-size:11.5px;
+    color:#86EFAC;
+    letter-spacing:0.3px;
+    font-family:"SF Mono","Roboto Mono",monospace;
+  }
+  .id-chip .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--success);
+    box-shadow:0 0 8px rgba(34,197,94,0.8);
+    animation:blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  @media (max-width:380px){
+    .card{ padding:36px 24px 30px; }
+    .title{ font-size:21px; }
+  }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<div class="card-wrap">
+  <div class="card" id="mainCard">
+
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">Roo Drop</span>
+    </div>
+
+    <!-- ================= IDLE STATE ================= -->
+    <div class="state active" id="state-idle">
+      <div class="icon-stage">
+        <div class="icon-glow"></div>
+        <div class="icon-ring"></div>
+        <div class="icon-core" id="idleIconCore">
+          <svg viewBox="0 0 24 24">
+            <rect x="5" y="11" width="14" height="10" rx="2.5"></rect>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+            <circle cx="12" cy="16" r="1.4" fill="#fff" stroke="none"></circle>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="title">Security Check</h1>
+      <p class="subtitle">Verify your device to continue using Roo Drop Referral Rewards.</p>
+
+      <button class="verify-btn" id="verifyBtn">
+        <span class="btn-label">
+          <span class="btn-spinner"></span>
+          <span class="btn-text-idle">Verify Account</span>
+          <span class="btn-text-loading" style="display:none;">Verifying...</span>
+        </span>
+      </button>
+
+      <div class="footer-note">
+        <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <span>Secured &amp; encrypted device check</span>
+      </div>
+    </div>
+
+    <!-- ================= LOADING STATE ================= -->
+    <div class="state" id="state-loading">
+      <div class="icon-stage">
+        <div class="icon-glow"></div>
+        <div class="spinner-ring"></div>
+        <div class="icon-core">
+          <svg viewBox="0 0 24 24">
+            <rect x="5" y="11" width="14" height="10" rx="2.5"></rect>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+            <circle cx="12" cy="16" r="1.4" fill="#fff" stroke="none"></circle>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="title">Verifying device...</h1>
+      <p class="progress-text" id="progressText">Initializing...</p>
+
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- ================= SUCCESS STATE ================= -->
+    <!-- NOTE: reaching this state only means sendData() was called and the
+         Telegram client accepted delivery to the bot. Telegram's WebApp
+         bridge is fire-and-forget: there is no synchronous API response
+         from our backend at this point, so this state intentionally does
+         NOT claim the account/device was actually verified server-side.
+         The bot chat sends the authoritative "✅ Device verification
+         passed!" / "❌ ... failed" message once the backend has actually
+         processed web_app_data. -->
+    <div class="state" id="state-success">
+      <div class="icon-stage">
+        <div class="icon-glow" style="background:radial-gradient(circle, rgba(34,197,94,0.55), rgba(34,197,94,0) 70%);"></div>
+        <div class="icon-core success">
+          <svg viewBox="0 0 24 24">
+            <path class="check-path" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+      </div>
+      <h1 class="title">Check Sent</h1>
+      <p class="subtitle">Your device info was sent securely. Return to the chat to see your verification result.</p>
+      <div class="id-chip"><span class="dot"></span><span id="idChipText">SENT FOR VERIFICATION</span></div>
+    </div>
+
+    <!-- ================= ERROR STATE (verification failed) ================= -->
+    <div class="state" id="state-error">
+      <div class="icon-stage">
+        <div class="icon-glow" style="background:radial-gradient(circle, rgba(239,68,68,0.5), rgba(239,68,68,0) 70%);"></div>
+        <div class="icon-core error">
+          <svg viewBox="0 0 24 24">
+            <line x1="12" y1="8" x2="12" y2="13"></line>
+            <circle cx="12" cy="16.2" r="1" fill="#fff" stroke="none"></circle>
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
+        </div>
+      </div>
+      <h1 class="title">Verification Failed</h1>
+      <p class="subtitle" id="errorMessage">Something went wrong while verifying your device. Please try again.</p>
+      <button class="verify-btn" id="retryBtn"><span class="btn-label"><span class="btn-text-idle">Try Again</span></span></button>
+    </div>
+
+    <!-- ================= NOT-IN-TELEGRAM STATE ================= -->
+    <div class="state" id="state-outside">
+      <div class="icon-stage">
+        <div class="icon-glow"></div>
+        <div class="icon-core">
+          <svg viewBox="0 0 24 24">
+            <rect x="5" y="11" width="14" height="10" rx="2.5"></rect>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+          </svg>
+        </div>
+      </div>
+      <h1 class="title">Open Inside Telegram</h1>
+      <p class="subtitle">This verification page only works inside the Telegram app. Please open Roo Drop from Telegram to continue.</p>
+      <a class="tg-btn" href="https://telegram.org" id="openTgBtn">
+        <svg viewBox="0 0 240 240"><path d="M120 0C53.7 0 0 53.7 0 120s53.7 120 120 120 120-53.7 120-120S186.3 0 120 0zm55.9 82.2-19.2 90.5c-1.4 6.5-5.3 8.1-10.7 5L117 154.2l-17.4 16.7c-1.9 1.9-3.5 3.5-7.2 3.5l2.6-36.4 66.3-59.9c2.9-2.6-.6-4-4.5-1.4L74 130.9l-35.7-11.2c-7.8-2.4-7.9-7.8 1.6-11.5l139.6-53.8c6.5-2.4 12.2 1.5 10.1 11.8z"/></svg>
+        <span>Open Telegram</span>
+      </a>
+    </div>
+
+    <!-- ================= VERIFICATION STATUS (Telegram WebApp live checks) =================
+         Persistent diagnostic section, visible regardless of which .state above is active.
+         Populated live by collectDiagStatus()/renderDiagStatus() in the script below and
+         re-read on init, on a short post-ready retry/poll, and again right before
+         "Verify My Device" sends the payload. Purely informational: never used to
+         short-circuit isRunningInTelegram()/initTelegram(), the fingerprint/device-id
+         generation, or the payload sent via tg.sendData(). The backend remains the sole
+         authority on whether verification actually succeeded. -->
+    <div class="diag-panel" id="diagPanel">
+      <div class="diag-panel-title">Telegram WebApp Status</div>
+      <div class="diag-row"><span class="diag-key">collecting…</span><span class="diag-val diag-pending">—</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= CONFIG ================= */
+  var CONFIG = {
+    brand: "Roo Drop",
+    progressSteps: [
+      { text: "Initializing...", percent: 12 },
+      { text: "Collecting device info...", percent: 42 },
+      { text: "Generating fingerprint...", percent: 74 },
+      { text: "Sending secure verification...", percent: 100 }
+    ],
+    stepDelay: 480,
+    successCloseDelay: 1000
+  };
+
+  /* ================= DOM REFS ================= */
+  var els = {
+    idle: document.getElementById("state-idle"),
+    loading: document.getElementById("state-loading"),
+    success: document.getElementById("state-success"),
+    error: document.getElementById("state-error"),
+    outside: document.getElementById("state-outside"),
+    verifyBtn: document.getElementById("verifyBtn"),
+    retryBtn: document.getElementById("retryBtn"),
+    progressText: document.getElementById("progressText"),
+    progressFill: document.getElementById("progressFill"),
+    errorMessage: document.getElementById("errorMessage"),
+    idChipText: document.getElementById("idChipText"),
+    openTgBtn: document.getElementById("openTgBtn")
+  };
+
+  function showState(name){
+    [els.idle, els.loading, els.success, els.error, els.outside].forEach(function(el){
+      el.classList.remove("active");
+    });
+    els[name].classList.add("active");
+  }
+
+  /* ================= PARTICLES ================= */
+  function initParticles(){
+    var container = document.getElementById("particles");
+    var count = window.innerWidth < 480 ? 14 : 22;
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < count; i++){
+      var p = document.createElement("div");
+      p.className = "particle";
+      var size = 3 + Math.random() * 7;
+      p.style.width = size + "px";
+      p.style.height = size + "px";
+      p.style.left = Math.random() * 100 + "%";
+      p.style.setProperty("--drift", (Math.random() * 80 - 40) + "px");
+      var duration = 10 + Math.random() * 14;
+      p.style.animationDuration = duration + "s";
+      p.style.animationDelay = (Math.random() * duration) + "s";
+      frag.appendChild(p);
+    }
+    container.appendChild(frag);
+  }
+
+  /* ================= RIPPLE EFFECT ================= */
+  function attachRipple(button){
+    button.addEventListener("click", function(e){
+      if (button.disabled) return;
+      var rect = button.getBoundingClientRect();
+      var ripple = document.createElement("span");
+      var size = Math.max(rect.width, rect.height) * 1.2;
+      ripple.className = "ripple";
+      ripple.style.width = ripple.style.height = size + "px";
+      var x = (e.clientX || (rect.left + rect.width/2)) - rect.left - size/2;
+      var y = (e.clientY || (rect.top + rect.height/2)) - rect.top - size/2;
+      ripple.style.left = x + "px";
+      ripple.style.top = y + "px";
+      button.appendChild(ripple);
+      setTimeout(function(){ ripple.remove(); }, 620);
+    });
+  }
+
+  /* ================= TELEGRAM WEBAPP ================= */
+  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+  function isRunningInTelegram(){
+    if (!tg) return false;
+    // initData is populated for keyboard-button web_app launches, but Telegram
+    // clients that launch the WebApp via other entry points can leave initData
+    // empty while still exposing a known tg.platform (and a working sendData()).
+    // Relying on initData alone here previously caused false "outside Telegram"
+    // states for those launch methods, so treat either signal as "inside".
+    var hasInitData = !!(tg.initData && tg.initData.length > 0);
+    var hasKnownPlatform = !!(tg.platform && tg.platform !== "unknown");
+    return hasInitData || hasKnownPlatform;
+  }
+
+  function haptic(kind){
+    try{
+      if (!tg || !tg.HapticFeedback) return;
+      if (kind === "success") tg.HapticFeedback.notificationOccurred("success");
+      else if (kind === "error") tg.HapticFeedback.notificationOccurred("error");
+      else if (kind === "tap") tg.HapticFeedback.impactOccurred("light");
+    }catch(e){}
+  }
+
+  function initTelegram(){
+    if (!tg) return false;
+    try{
+      tg.ready();
+      tg.expand();
+      if (tg.setHeaderColor) { try { tg.setHeaderColor("#0F0825"); } catch(e){} }
+      if (tg.setBackgroundColor) { try { tg.setBackgroundColor("#0F0825"); } catch(e){} }
+      if (tg.enableClosingConfirmation) { try { tg.disableClosingConfirmation(); } catch(e){} }
+      if (tg.BackButton) { try { tg.BackButton.hide(); } catch(e){} }
+      return true;
+    }catch(err){
+      return false;
+    }
+  }
+
+  /* ================= VERIFICATION STATUS (live Telegram WebApp checks) =================
+     Purely observational -- reads window.Telegram/tg state and reports it to the user
+     in the persistent #diagPanel section. Never alters isRunningInTelegram()/
+     initTelegram(), the fingerprint/device-verification code, or anything sent to the
+     backend. sendData() being reachable here is NOT treated as proof of a successful
+     backend verification -- that is decided by the bot/backend after HMAC validation. */
+
+  // Ordered so the rendered list matches the 8 required checks.
+  var DIAG_CHECK_ORDER = [
+    "telegramApi", "webApp", "webAppVersion", "platform",
+    "initData", "telegramUser", "sendData", "telegramUserId"
+  ];
+  var DIAG_LABELS = {
+    telegramApi:   "Telegram API",
+    webApp:        "WebApp",
+    webAppVersion: "WebApp Version",
+    platform:      "Platform",
+    initData:      "initData",
+    telegramUser:  "Telegram User",
+    sendData:      "sendData",
+    telegramUserId:"Telegram User ID"
+  };
+
+  function maskUserId(id){
+    var str = String(id);
+    if (str.length <= 4) return str + "******";
+    return str.slice(0, 4) + "******";
+  }
+
+  function collectDiagStatus(){
+    var hasTelegramNS = !!window.Telegram;
+    var hasWebApp = !!(window.Telegram && window.Telegram.WebApp);
+    var version = (tg && tg.version) ? tg.version : null;
+    var platform = (tg && tg.platform && tg.platform !== "unknown") ? tg.platform : null;
+    var initDataLen = (tg && tg.initData) ? tg.initData.length : 0;
+    var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+    var hasSendData = !!(tg && typeof tg.sendData === "function");
+
+    // status: "pass" | "fail" | "pending" (pending only while a retry window is still open)
+    return {
+      telegramApi:   { status: hasTelegramNS ? "pass" : "fail", value: hasTelegramNS ? "Available" : "Not found" },
+      webApp:        { status: hasWebApp ? "pass" : "fail", value: hasWebApp ? "Available" : "Not found" },
+      webAppVersion: { status: version ? "pass" : "fail", value: version || "n/a" },
+      platform:      { status: platform ? "pass" : "fail", value: platform || "n/a" },
+      // Never render the raw initData string -- length only, so nothing here can leak
+      // the payload or its auth hash.
+      initData:      { status: initDataLen > 0 ? "pass" : "fail", value: initDataLen > 0 ? (initDataLen + " chars") : "empty" },
+      telegramUser:  { status: user ? "pass" : "fail", value: user ? "Available" : "Not found" },
+      sendData:      { status: hasSendData ? "pass" : "fail", value: hasSendData ? "Available" : "Not found" },
+      telegramUserId:{ status: (user && user.id !== undefined) ? "pass" : "fail", value: (user && user.id !== undefined) ? maskUserId(user.id) : "n/a" }
+    };
+  }
+
+  function renderDiagStatus(diag, pendingKeys){
+    var panel = document.getElementById("diagPanel");
+    if (!panel) return;
+    pendingKeys = pendingKeys || {};
+    var html = '<div class="diag-panel-title">Telegram WebApp Status</div>';
+    DIAG_CHECK_ORDER.forEach(function(key){
+      var entry = diag[key];
+      var isPending = !!pendingKeys[key];
+      var icon = isPending ? "⏳" : (entry.status === "pass" ? "✅" : "❌");
+      var cls = "diag-val " + (isPending ? "diag-pending" : (entry.status === "pass" ? "diag-true" : "diag-false"));
+      html += '<div class="diag-row">' +
+                '<span class="diag-key"><span class="diag-icon">' + icon + '</span>' + DIAG_LABELS[key] + '</span>' +
+                '<span class="' + cls + '">' + entry.value + '</span>' +
+              '</div>';
+    });
+    panel.innerHTML = html;
+  }
+
+  /* Re-reads tg state on a short poll after tg.ready()/tg.expand(), since Telegram
+     WebApp initialization (and initData/platform availability) can lag a moment
+     behind those calls on some clients. Updates the visible status live on every
+     tick, and resolves once either every check has settled or the timeout hits --
+     whichever comes first. Does not decide "outside Telegram" itself; the caller
+     does that using isRunningInTelegram() only after this promise resolves. */
+  function pollTelegramStatus(options){
+    options = options || {};
+    var intervalMs = options.intervalMs || 150;
+    var timeoutMs = options.timeoutMs || 2500;
+    var startedAt = Date.now();
+
+    return new Promise(function(resolve){
+      function tick(){
+        var diag = collectDiagStatus();
+        var elapsed = Date.now() - startedAt;
+        var timedOut = elapsed >= timeoutMs;
+
+        // Still counts as "checking" (⏳) for fields still failing, as long as we
+        // haven't hit the timeout yet -- avoids flashing a premature ❌ for fields
+        // that are simply slow to populate.
+        var pendingKeys = {};
+        if (!timedOut){
+          DIAG_CHECK_ORDER.forEach(function(key){
+            if (diag[key].status === "fail") pendingKeys[key] = true;
+          });
+        }
+        renderDiagStatus(diag, pendingKeys);
+
+        var allSettled = DIAG_CHECK_ORDER.every(function(key){ return diag[key].status === "pass"; });
+        if (allSettled || timedOut){
+          resolve(diag);
+          return;
+        }
+        setTimeout(tick, intervalMs);
+      }
+      tick();
+    });
+  }
+
+  /* ================= DEVICE FINGERPRINT COLLECTION ================= */
+
+  function getCanvasFingerprint(){
+    try{
+      var canvas = document.createElement("canvas");
+      canvas.width = 260;
+      canvas.height = 60;
+      var ctx = canvas.getContext("2d");
+      if (!ctx) return "unavailable";
+      ctx.textBaseline = "top";
+      ctx.font = "16px 'Arial'";
+      ctx.fillStyle = "#8B5CF6";
+      ctx.fillRect(0, 0, 260, 60);
+      ctx.fillStyle = "#F5F3FF";
+      ctx.fillText("RooDrop-fp-🔒-2026", 4, 8);
+      ctx.strokeStyle = "#A855F7";
+      ctx.beginPath();
+      ctx.arc(220, 30, 14, 0, Math.PI * 2, true);
+      ctx.stroke();
+      return canvas.toDataURL();
+    }catch(e){
+      return "unavailable";
+    }
+  }
+
+  function getWebGLFingerprint(){
+    try{
+      var canvas = document.createElement("canvas");
+      var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) return "unavailable";
+      var info = {
+        vendor: gl.getParameter(gl.VENDOR) || "",
+        renderer: gl.getParameter(gl.RENDERER) || "",
+        version: gl.getParameter(gl.VERSION) || "",
+        shadingLangVersion: gl.getParameter(gl.SHADING_LANGUAGE_VERSION) || ""
+      };
+      var dbgExt = gl.getExtension("WEBGL_debug_renderer_info");
+      if (dbgExt){
+        info.unmaskedVendor = gl.getParameter(dbgExt.UNMASKED_VENDOR_WEBGL) || "";
+        info.unmaskedRenderer = gl.getParameter(dbgExt.UNMASKED_RENDERER_WEBGL) || "";
+      }
+      return JSON.stringify(info);
+    }catch(e){
+      return "unavailable";
+    }
+  }
+
+  function collectDeviceInfo(){
+    var nav = window.navigator || {};
+    var scr = window.screen || {};
+
+    var info = {
+      canvasFingerprint: getCanvasFingerprint(),
+      webglFingerprint: getWebGLFingerprint(),
+      timezone: (Intl && Intl.DateTimeFormat) ? Intl.DateTimeFormat().resolvedOptions().timeZone : "unknown",
+      timezoneOffset: new Date().getTimezoneOffset(),
+      language: nav.language || "unknown",
+      languages: (nav.languages || []).join(",") || "unknown",
+      platform: nav.platform || "unknown",
+      userAgent: nav.userAgent || "unknown",
+      screenResolution: (scr.width || 0) + "x" + (scr.height || 0),
+      availScreenResolution: (scr.availWidth || 0) + "x" + (scr.availHeight || 0),
+      colorDepth: scr.colorDepth || 0,
+      pixelRatio: window.devicePixelRatio || 1,
+      deviceMemory: nav.deviceMemory || "unknown",
+      hardwareConcurrency: nav.hardwareConcurrency || "unknown",
+      touchSupport: ("ontouchstart" in window) || (nav.maxTouchPoints > 0),
+      maxTouchPoints: nav.maxTouchPoints || 0,
+      cookieEnabled: !!nav.cookieEnabled,
+      doNotTrack: nav.doNotTrack || "unknown"
+    };
+
+    return info;
+  }
+
+  /* ================= SHA-256 HASHING ================= */
+  function sha256Hex(message){
+    var enc = new TextEncoder();
+    var data = enc.encode(message);
+    if (window.crypto && window.crypto.subtle && window.crypto.subtle.digest){
+      return window.crypto.subtle.digest("SHA-256", data).then(function(buf){
+        var bytes = new Uint8Array(buf);
+        var hex = "";
+        for (var i = 0; i < bytes.length; i++){
+          hex += bytes[i].toString(16).padStart(2, "0");
+        }
+        return hex;
+      });
+    }
+    // Fallback: not expected on modern Telegram clients, but avoids a hard crash.
+    return Promise.resolve(simpleFallbackHash(message));
+  }
+
+  function simpleFallbackHash(str){
+    var hash = 0, i, chr;
+    if (str.length === 0) return "0";
+    for (i = 0; i < str.length; i++){
+      chr = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + chr;
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16);
+  }
+
+  /* ================= UA PARSING HELPERS ================= */
+  function detectBrowser(ua){
+    ua = ua || "";
+    if (/Edg\//.test(ua)) return "Edge";
+    if (/OPR\//.test(ua) || /Opera/.test(ua)) return "Opera";
+    if (/Chrome\//.test(ua) && !/Chromium/.test(ua)) return "Chrome";
+    if (/CriOS\//.test(ua)) return "Chrome iOS";
+    if (/FxiOS\//.test(ua)) return "Firefox iOS";
+    if (/Firefox\//.test(ua)) return "Firefox";
+    if (/Safari\//.test(ua) && /Version\//.test(ua)) return "Safari";
+    if (/Telegram/i.test(ua)) return "Telegram In-App";
+    return "Unknown";
+  }
+
+  function detectOS(ua, platform){
+    ua = ua || "";
+    platform = platform || "";
+    if (/Android/.test(ua)) return "Android";
+    if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
+    if (/Windows NT/.test(ua)) return "Windows";
+    if (/Mac OS X/.test(ua) && !/iPhone|iPad|iPod/.test(ua)) return "macOS";
+    if (/Linux/.test(platform) && !/Android/.test(ua)) return "Linux";
+    return "Unknown";
+  }
+
+  /* ================= STABLE DEVICE ID ================= */
+  function buildStableDeviceSeed(deviceInfo){
+    // Uses only slow-changing hardware/OS traits so the id stays stable across sessions,
+    // independent of the full fingerprint hash (which also includes canvas/webgl noise).
+    return [
+      deviceInfo.platform,
+      deviceInfo.hardwareConcurrency,
+      deviceInfo.deviceMemory,
+      deviceInfo.screenResolution,
+      deviceInfo.colorDepth,
+      deviceInfo.pixelRatio,
+      deviceInfo.timezone,
+      deviceInfo.language
+    ].join("|");
+  }
+
+  /* ================= PROGRESS UI ================= */
+  function runProgressSequence(){
+    return new Promise(function(resolve){
+      var idx = 0;
+      function next(){
+        if (idx >= CONFIG.progressSteps.length){
+          resolve();
+          return;
+        }
+        var step = CONFIG.progressSteps[idx];
+        els.progressText.style.opacity = 0;
+        setTimeout(function(){
+          els.progressText.textContent = step.text;
+          els.progressFill.style.width = step.percent + "%";
+          els.progressText.style.opacity = 1;
+        }, 120);
+        idx++;
+        setTimeout(next, CONFIG.stepDelay);
+      }
+      next();
+    });
+  }
+
+  /* ================= MAIN VERIFY FLOW ================= */
+  function setButtonLoading(isLoading){
+    var btn = els.verifyBtn;
+    btn.disabled = isLoading;
+    if (isLoading){
+      btn.classList.add("loading");
+      btn.querySelector(".btn-text-loading").style.display = "inline";
+    } else {
+      btn.classList.remove("loading");
+      btn.querySelector(".btn-text-loading").style.display = "none";
+    }
+  }
+
+  function handleError(message){
+    els.errorMessage.textContent = message || "Something went wrong while verifying your device. Please try again.";
+    haptic("error");
+    showState("error");
+  }
+
+  function beginVerification(){
+    setButtonLoading(true);
+    showState("loading");
+    els.progressFill.style.width = "0%";
+    els.progressText.textContent = "";
+
+    // Re-read the latest Telegram WebApp state right as verification starts,
+    // in case it changed since the initial poll (e.g. initData became
+    // available only after the user interacted with the page).
+    renderDiagStatus(collectDiagStatus(), {});
+
+    Promise.all([
+      runProgressSequence(),
+      new Promise(function(resolve){ setTimeout(resolve, 60); }) // minimum perceived work
+    ])
+    .then(function(){
+      var deviceInfo = collectDeviceInfo();
+      var fingerprintSource = JSON.stringify(deviceInfo);
+      var deviceIdSource = buildStableDeviceSeed(deviceInfo);
+
+      return Promise.all([
+        sha256Hex(fingerprintSource),
+        sha256Hex(deviceIdSource)
+      ]).then(function(hashes){
+        return { deviceInfo: deviceInfo, fingerprintHash: hashes[0], deviceId: hashes[1] };
+      });
+    })
+    .then(function(result){
+      var initDataUnsafe = (tg && tg.initDataUnsafe) ? tg.initDataUnsafe : {};
+      var user = initDataUnsafe.user || {};
+      var deviceInfo = result.deviceInfo;
+
+      // Final refresh of the visible status right before sendData() -- this is
+      // display-only. The values actually sent below are still read fresh from
+      // tg.initData / tg.initDataUnsafe, not from anything cached in the panel.
+      renderDiagStatus(collectDiagStatus(), {});
+
+      if (!tg || typeof tg.sendData !== "function"){
+        throw new Error("Telegram WebApp is unavailable on this client.");
+      }
+
+      // Guard against ever sending a broken/empty fingerprint as if it were
+      // a valid one — the backend independently re-validates this too, but
+      // failing fast here avoids a false "sent" state on the client.
+      if (!result.fingerprintHash || typeof result.fingerprintHash !== "string" || result.fingerprintHash.length < 16){
+        throw new Error("Fingerprint generation failed.");
+      }
+
+      var payload = {
+        fingerprint_hash: result.fingerprintHash,
+        device_id: result.deviceId,
+        telegram_init_data: tg.initData || "",
+        telegram_user_id: user.id || null,
+        browser: detectBrowser(deviceInfo.userAgent),
+        os: detectOS(deviceInfo.userAgent, deviceInfo.platform),
+        language: deviceInfo.language,
+        screen_resolution: deviceInfo.screenResolution,
+        timezone: deviceInfo.timezone,
+        user_agent: deviceInfo.userAgent,
+        canvas_fp: deviceInfo.canvasFingerprint,
+        webgl_fp: deviceInfo.webglFingerprint
+      };
+
+      tg.sendData(JSON.stringify(payload));
+
+      // IMPORTANT: sendData() is fire-and-forget -- Telegram delivers this
+      // to the bot as a `web_app_data` update, but gives the WebApp no
+      // confirmation the backend actually accepted it. So this state only
+      // confirms the check was SENT, not that it was verified. The bot
+      // chat is what tells the user the real, authoritative result.
+      var shortId = result.deviceId.slice(0, 12).toUpperCase();
+      els.idChipText.textContent = "REF " + shortId;
+      haptic("success");
+      showState("success");
+
+      setTimeout(function(){
+        try{
+          if (tg && typeof tg.close === "function") tg.close();
+        }catch(e){}
+      }, CONFIG.successCloseDelay);
+    })
+    .catch(function(err){
+      setButtonLoading(false);
+      handleError("We couldn't complete verification. Please check your connection and try again.");
+    });
+  }
+
+  /* ================= EVENT BINDINGS ================= */
+  attachRipple(els.verifyBtn);
+  attachRipple(els.retryBtn);
+
+  els.verifyBtn.addEventListener("click", function(){
+    if (els.verifyBtn.disabled) return;
+    haptic("tap");
+    beginVerification();
+  });
+
+  els.retryBtn.addEventListener("click", function(){
+    setButtonLoading(false);
+    showState("idle");
+  });
+
+  els.openTgBtn.addEventListener("click", function(e){
+    // Generic Telegram entry point; adjust to your bot's deep link if desired.
+    // Left as a safe, non-secret default.
+  });
+
+  /* ================= BOOTSTRAP ================= */
+  function bootstrap(){
+    initParticles();
+
+    var tgReady = initTelegram();
+
+    // Render an immediate snapshot (mostly ⏳/❌ at this point) so the status
+    // section is visible right away, then let the poll below fill it in live
+    // as Telegram WebApp finishes initializing -- without requiring a reload.
+    renderDiagStatus(collectDiagStatus(), {});
+
+    if (!tgReady){
+      showState("outside");
+      return;
+    }
+
+    pollTelegramStatus().then(function(){
+      // Only decide "outside Telegram" after the retry/poll window has
+      // genuinely failed to produce initData or a known platform.
+      showState(isRunningInTelegram() ? "idle" : "outside");
+    });
+  }
+
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", bootstrap);
+  } else {
+    bootstrap();
+  }
+
+})();
+</script>
+
+</body>
+</html>
