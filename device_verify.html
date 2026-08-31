@@ -393,6 +393,41 @@
   .tg-btn:active{ transform:scale(0.97); }
   .tg-btn svg{ width:18px;height:18px; fill:#fff; }
 
+  /* ---------- TEMPORARY DIAGNOSTIC PANEL (remove after debugging) ---------- */
+  .diag-panel{
+    margin-top:22px;
+    text-align:left;
+    background:rgba(0,0,0,0.28);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:14px;
+    padding:14px 16px;
+    font-family:"SF Mono","Roboto Mono",monospace;
+    font-size:11.5px;
+    line-height:1.7;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .diag-panel-title{
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-tertiary);
+    margin-bottom:8px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .diag-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:3px 0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .diag-row:last-child{ border-bottom:none; }
+  .diag-key{ color:var(--text-secondary); white-space:nowrap; }
+  .diag-val{ color:#C4B5FD; word-break:break-all; text-align:right; }
+  .diag-val.diag-true{ color:#86EFAC; }
+  .diag-val.diag-false{ color:#FCA5A5; }
+
   /* device id chip (success state) */
   .id-chip{
     margin-top:22px;
@@ -549,6 +584,14 @@
         <svg viewBox="0 0 240 240"><path d="M120 0C53.7 0 0 53.7 0 120s53.7 120 120 120 120-53.7 120-120S186.3 0 120 0zm55.9 82.2-19.2 90.5c-1.4 6.5-5.3 8.1-10.7 5L117 154.2l-17.4 16.7c-1.9 1.9-3.5 3.5-7.2 3.5l2.6-36.4 66.3-59.9c2.9-2.6-.6-4-4.5-1.4L74 130.9l-35.7-11.2c-7.8-2.4-7.9-7.8 1.6-11.5l139.6-53.8c6.5-2.4 12.2 1.5 10.1 11.8z"/></svg>
         <span>Open Telegram</span>
       </a>
+
+      <!-- TEMPORARY DIAGNOSTIC PANEL — remove once the web_app_data delivery
+           issue is resolved. Populated by collectDiagnostics()/renderDiagnostics()
+           in the script below. Not part of the verification logic. -->
+      <div class="diag-panel" id="diagPanel">
+        <div class="diag-panel-title">⚙ Diagnostics (temporary)</div>
+        <div class="diag-row"><span class="diag-key">collecting…</span><span class="diag-val">—</span></div>
+      </div>
     </div>
 
   </div>
@@ -664,6 +707,63 @@
     }catch(err){
       return false;
     }
+  }
+
+  /* ================= TEMPORARY DIAGNOSTICS (remove after debugging) =================
+     Purely observational -- reads window.Telegram/tg state and reports it. Does not
+     alter isRunningInTelegram()/initTelegram(), the fingerprint/device-verification
+     code, or anything sent to the backend. Safe to delete this whole block plus its
+     call site in bootstrap() and the #diagPanel markup once the issue is diagnosed. */
+  function collectDiagnostics(){
+    var hasTelegramNS = !!window.Telegram;
+    var hasWebApp = !!(window.Telegram && window.Telegram.WebApp);
+    var version = (tg && tg.version) ? tg.version : "n/a";
+    var platform = (tg && tg.platform) ? tg.platform : "n/a";
+    var initDataLen = (tg && tg.initData) ? tg.initData.length : 0;
+    var hasUser = !!(tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
+    var hasSendData = !!(tg && typeof tg.sendData === "function");
+    var userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id !== undefined)
+      ? tg.initDataUnsafe.user.id
+      : "n/a";
+
+    var diag = {
+      "window.Telegram exists": hasTelegramNS,
+      "window.Telegram.WebApp exists": hasWebApp,
+      "WebApp version": version,
+      "WebApp platform": platform,
+      "initData length": initDataLen,
+      "initDataUnsafe.user exists": hasUser,
+      "tg.sendData is function": hasSendData,
+      "initDataUnsafe.user.id": userId
+    };
+
+    console.log("[RooDrop diagnostics] window.Telegram exists:", hasTelegramNS);
+    console.log("[RooDrop diagnostics] window.Telegram.WebApp exists:", hasWebApp);
+    console.log("[RooDrop diagnostics] WebApp version:", version);
+    console.log("[RooDrop diagnostics] WebApp platform:", platform);
+    console.log("[RooDrop diagnostics] initData length:", initDataLen);
+    console.log("[RooDrop diagnostics] initDataUnsafe.user exists:", hasUser);
+    console.log("[RooDrop diagnostics] tg.sendData is function:", hasSendData);
+    console.log("[RooDrop diagnostics] initDataUnsafe.user.id:", userId);
+    console.log("[RooDrop diagnostics] full summary:", diag);
+
+    return diag;
+  }
+
+  function renderDiagnostics(diag){
+    var panel = document.getElementById("diagPanel");
+    if (!panel) return;
+    var html = '<div class="diag-panel-title">⚙ Diagnostics (temporary)</div>';
+    for (var key in diag){
+      if (!diag.hasOwnProperty(key)) continue;
+      var val = diag[key];
+      var cls = "diag-val";
+      if (val === true) cls += " diag-true";
+      else if (val === false) cls += " diag-false";
+      html += '<div class="diag-row"><span class="diag-key">' + key + '</span>' +
+              '<span class="' + cls + '">' + String(val) + '</span></div>';
+    }
+    panel.innerHTML = html;
   }
 
   /* ================= DEVICE FINGERPRINT COLLECTION ================= */
@@ -956,7 +1056,12 @@
 
     var tgReady = initTelegram();
 
+    // TEMPORARY: always collect diagnostics so console.log output is available
+    // even if something above throws before reaching the outside-state branch.
+    var diag = collectDiagnostics();
+
     if (!tgReady || !isRunningInTelegram()){
+      renderDiagnostics(diag);
       showState("outside");
       return;
     }
